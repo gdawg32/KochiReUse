@@ -3,6 +3,7 @@ from django.urls import path
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('category_search/', views.category_search, name='category_search'),
     path('buyer_login/', views.buyer_login, name='buyer_login'),
     path('buyer_signup/', views.buyer_signup, name='buyer_signup'),
     path('buyer/dashboard/', views.buyer_dashboard, name='buyer_dashboard'),
@@ -24,4 +25,7 @@ urlpatterns = [
     path('accept-buy-request/<int:request_id>/', views.accept_buy_request, name='accept_buy_request'),
     path('chat/<int:buy_request_id>/', views.chat_room, name='chat_room'),
     path('confirm-order/<int:buy_request_id>/', views.confirm_order, name='confirm_order'),
+    path('search_listings/', views.search_listings, name='search_listings'),
+    path('filter_listings/', views.filter_listings, name='filter_listings'),
+    path('sort_listings/', views.sort_listings, name='sort_listings'),
 ]

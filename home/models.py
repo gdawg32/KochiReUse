@@ -26,36 +26,14 @@ class ItemCondition(models.TextChoices):
 class Category(models.TextChoices):
     MOBILE = 'Mobile', 'Mobile'
     LAPTOP = 'Laptop', 'Laptop'
-    TABLET = 'Tablet', 'Tablet'
-    FURNITURE = 'Furniture', 'Furniture'
     VEHICLE = 'Vehicle', 'Vehicle'
-    ELECTRONICS = 'Electronics', 'Electronics'
-    APPLIANCES = 'Appliances', 'Appliances'
-    CLOTHING = 'Clothing', 'Clothing'
-    BOOKS = 'Books', 'Books'
-    SPORTS = 'Sports', 'Sports'
-    TOYS = 'Toys', 'Toys'
-    JEWELRY = 'Jewelry', 'Jewelry'
-    HOME_DECOR = 'Home Decor', 'Home Decor'
-    GARDEN = 'Garden', 'Garden'
     OTHER = 'Other', 'Other'
 
 class Listing(models.Model):
     CATEGORY_CHOICES = [
         ('Mobile', 'Mobile'),
         ('Laptop', 'Laptop'),
-        ('Tablet', 'Tablet'),
-        ('Furniture', 'Furniture'),
         ('Vehicle', 'Vehicle'),
-        ('Electronics', 'Electronics'),
-        ('Appliances', 'Appliances'),
-        ('Clothing', 'Clothing'),
-        ('Books', 'Books'),
-        ('Sports', 'Sports'),
-        ('Toys', 'Toys'),
-        ('Jewelry', 'Jewelry'),
-        ('Home Decor', 'Home Decor'),
-        ('Garden', 'Garden'),
         ('Other', 'Other'),
     ]
 
@@ -84,6 +62,8 @@ class Listing(models.Model):
     )
 
     location = models.CharField(max_length=255)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

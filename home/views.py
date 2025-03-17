@@ -9,6 +9,7 @@ from decimal import Decimal
 import os
 from .utils import generate_chat_hash
 from django.conf import settings
+from django.http import JsonResponse
 
 # Create your views here.
 def index(request):
@@ -33,7 +34,9 @@ def buyer_login(request):
 
 
 def buyer_signup(request):
-    
+    if request.user.is_authenticated:
+        return redirect('buyer_dashboard')  # Redirect to the dashboard if already logged in
+
     if request.method == "POST":
         # Get data from the form submission
         username = request.POST.get("username")
@@ -53,12 +56,16 @@ def buyer_signup(request):
             profile_image=profile_image,
         )
 
-
         return redirect("buyer_login")  
 
     return render(request, 'buyer_signup.html')
 
+@login_required
 def buyer_dashboard(request):
+    if request.user.is_authenticated and request.user.buyer:
+        print(f"Authenticated User: {request.user.username}")
+
+    
     wishlist_items = Wishlist.objects.filter(buyer=request.user.buyer)
     buy_requests = BuyRequest.objects.filter(buyer=request.user)
     orders = Order.objects.filter(buyer=request.user).order_by('-created_at')
@@ -218,6 +225,8 @@ def add_listing(request):
         category = request.POST.get("category")
         condition = request.POST.get("condition")
         location = request.POST.get("location")
+        latitude = request.POST.get("latitude")
+        longitude = request.POST.get("longitude")
         contact_number = request.POST.get("contact_number")
         shipping_available = request.POST.get("shipping_available") == "on"
         negotiable = request.POST.get("negotiable") == "on"
@@ -243,6 +252,8 @@ def add_listing(request):
             category=category,
             condition=condition,
             location=location,
+            latitude=latitude if latitude else None,
+            longitude=longitude if longitude else None,
             contact_number=contact_number,
             shipping_available=shipping_available,
             negotiable=negotiable,
@@ -273,20 +284,25 @@ def add_listing(request):
     )
 
 def all_listings(request):
+    query = request.GET.get('query', '')
+    category = request.GET.get('category', '')
+
     listings = Listing.objects.filter(is_available=True)
 
+    if query:
+        listings = listings.filter(title__icontains=query)  # Filter by search query
+
+    if category:
+        listings = listings.filter(category=category)  # Filter by category
+
     for listing in listings:
-        # If primary image exists, use it; otherwise, get first additional image
         if not listing.images:
             additional_image = ListingImage.objects.filter(listing=listing).first()
             listing.primary_image = additional_image.image.url if additional_image else None
         else:
             listing.primary_image = listing.images.url
 
-    context = {
-        "listings": listings,
-    }
-    return render(request, "listings.html", context)
+    return render(request, 'partials/listings_partial.html', {'listings': listings})
 
 def listing_detail(request, listing_id):
     listing = get_object_or_404(Listing, id=listing_id)
@@ -330,6 +346,9 @@ def edit_listing(request, listing_id):
         listing.description = request.POST.get("description")
         listing.shipping_available = "shipping_available" in request.POST
         listing.negotiable = "negotiable" in request.POST
+
+        # Ensure is_available is set correctly
+        listing.is_available = True  # Ensure it remains available unless explicitly set otherwise
 
         if "images" in request.FILES:
             listing.image = request.FILES["images"]  # Update main image
@@ -516,4 +535,78 @@ def confirm_order(request, buy_request_id):
         messages.error(request, f"An error occurred while confirming the order: {str(e)}")
     
     return redirect('chat_room', buy_request_id=buy_request_id)
+
+def search_listings(request):
+    query = request.GET.get('query', '')
+    listings = Listing.objects.filter(is_available=True)
+
+    if query:
+        listings = listings.filter(title__icontains=query)
+
+    for listing in listings:
+        if not listing.images:
+            additional_image = ListingImage.objects.filter(listing=listing).first()
+            listing.primary_image = additional_image.image.url if additional_image else None
+        else:
+            listing.primary_image = listing.images.url
+
+    # Return only the listings grid for HTMX requests
+    if request.headers.get('HX-Request'):
+        return render(request, 'partials/listings_grid.html', {'listings': listings})
+    return render(request, 'partials/listings_partial.html', {'listings': listings})
+
+def filter_listings(request):
+    max_price = request.GET.get('max_price')
+    listings = Listing.objects.filter(is_available=True)
+
+    if max_price:
+        listings = listings.filter(price__lte=max_price)
+
+    for listing in listings:
+        if not listing.images:
+            additional_image = ListingImage.objects.filter(listing=listing).first()
+            listing.primary_image = additional_image.image.url if additional_image else None
+        else:
+            listing.primary_image = listing.images.url
+
+    if request.headers.get('HX-Request'):
+        return render(request, 'partials/listings_grid.html', {'listings': listings})
+    return render(request, 'partials/listings_partial.html', {'listings': listings})
+
+def sort_listings(request):
+    order = request.GET.get('order', '')
+    listings = Listing.objects.filter(is_available=True)
+
+    if order == 'price_low_high':
+        listings = listings.order_by('price')
+    elif order == 'price_high_low':
+        listings = listings.order_by('-price')
+
+    for listing in listings:
+        if not listing.images:
+            additional_image = ListingImage.objects.filter(listing=listing).first()
+            listing.primary_image = additional_image.image.url if additional_image else None
+        else:
+            listing.primary_image = listing.images.url
+
+    if request.headers.get('HX-Request'):
+        return render(request, 'partials/listings_grid.html', {'listings': listings})
+    return render(request, 'partials/listings_partial.html', {'listings': listings})
+
+def category_search(request):
+    categories = Category.choices  # Get the available categories
+    return render(request, 'category_search.html', {'categories': categories})
+
+def listings_view(request):
+    """View for initial page load with base template and styling"""
+    listings = Listing.objects.filter(is_available=True)
+    
+    for listing in listings:
+        if not listing.images:
+            additional_image = ListingImage.objects.filter(listing=listing).first()
+            listing.primary_image = additional_image.image.url if additional_image else None
+        else:
+            listing.primary_image = listing.images.url
+    
+    return render(request, 'listings.html', {'listings': listings})
 

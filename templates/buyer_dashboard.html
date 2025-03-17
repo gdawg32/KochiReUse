@@ -4,6 +4,7 @@
 <link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Two+Tone|Material+Icons+Round|Material+Icons+Sharp" rel="stylesheet" />
 
 {% block content %}
+{% if request.user.is_authenticated and request.user.buyer %}
 <div class="bg-orange-100 min-h-screen">
   <div class="w-10/12 mx-auto py-8">
     <!-- Top Row: Welcome and Inbox -->
@@ -163,4 +164,8 @@
     </div>
   </div>
 </div>
+{% else %}
+    <p>You need to sign up as a buyer to access this page.</p>
+    <a href="{% url 'buyer_signup' %}">Sign Up</a>
+{% endif %}
 {% endblock %}
